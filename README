@@ -1,0 +1,9 @@
+This is the fork of the antispam dovecot plugin as the original one is
+aimed for dovecot versions before 2.0 and the respectful authors weren't
+going to update it.
+
+You can find the original version at
+http://johannes.sipsolutions.net/Projects/dovecot-antispam
+
+As a fork, this code undergoes the same licencing as the original one.
+You can find the copy of the GNU GPL v2 licence in the COPYING file.
