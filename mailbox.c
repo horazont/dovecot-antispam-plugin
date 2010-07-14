@@ -239,6 +239,7 @@ static int
 antispam_transaction_commit(struct mailbox_transaction_context *t,
 			    struct mail_transaction_commit_changes *changes_r)
 {
+	int ret;
 	struct mailbox *box = t->box;
 	struct antispam_mailbox *asmb = STORAGE_CONTEXT(box);
 	struct antispam_user *asu = USER_CONTEXT(box->storage->user);
@@ -251,15 +252,16 @@ antispam_transaction_commit(struct mailbox_transaction_context *t,
 		t->save_ctx->dest_mail = NULL;
 	}
 
-	if (asmb->module_ctx.super.transaction_commit(t, changes_r) != 0 ||
-			asu->backend->transaction_commit(box, ast->data) != 0)
-		goto bailout;
+	if ((ret = asmb->module_ctx.super.transaction_commit(t, changes_r)) != 0)
+	{
+		asu->backend->transaction_rollback(box, ast->data);
+		i_free(ast);
+		return ret;
+	}
 
-	return 0;
-
-bailout:
-	asu->backend->transaction_rollback(box, ast->data);
-	return -1;
+	ret = asu->backend->transaction_commit(box, ast->data);
+	i_free(ast);
+	return ret;
 }
 
 static void
@@ -278,6 +280,7 @@ antispam_transaction_rollback(struct mailbox_transaction_context *t)
 
 	asu->backend->transaction_rollback(t->box, ast->data);
 	asmb->module_ctx.super.transaction_rollback(t);
+	i_free(ast);
 }
 
 void antispam_mailbox_allocated(struct mailbox *box)
