@@ -2,7 +2,6 @@
 
 #include "user.h"
 #include "aux.h"
-#include "antispam-plugin.h"
 
 struct antispam_user_module antispam_user_module = \
 	MODULE_CONTEXT_INIT(&mail_user_module_register);

@@ -3,7 +3,6 @@
 #include "user.h"
 #include "mailbox.h"
 #include "backends.h"
-#include "antispam-plugin.h"
 
 static MODULE_CONTEXT_DEFINE_INIT(antispam_storage_module, &mail_storage_module_register);
 static MODULE_CONTEXT_DEFINE_INIT(antispam_transaction_module, &mail_storage_module_register);

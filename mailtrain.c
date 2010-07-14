@@ -22,15 +22,15 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-#include "antispam-plugin.h"
+#include "lib.h"
+#include "istream.h"
+#include "ostream.h"
+
 #include "aux.h"
 #include "backends.h"
 #include "mailbox.h"
 #include "mailtrain.h"
 #include "user.h"
-
-#include "istream.h"
-#include "ostream.h"
 
 struct mailtrain_config {
 	const char *binary;
