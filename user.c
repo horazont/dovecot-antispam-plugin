@@ -19,7 +19,7 @@ static void parse_folders(struct mail_user *user, const char *infix, char ***res
 			tmp = t_strconcat(infix, match_info[i].suffix, NULL);
 			tmp = config(user, tmp);
 			if (tmp)
-				result[i] = p_strsplit(global_pool, tmp, ";");
+				result[i] = p_strsplit(user->pool, tmp, ";");
 		}
 	}
 	T_END;
@@ -55,7 +55,7 @@ void antispam_user_created(struct mail_user *user)
 	struct antispam_user *asu;
 	const char *tmp;
 
-	asu = p_new(global_pool, struct antispam_user, 1);
+	asu = p_new(user->pool, struct antispam_user, 1);
 	asu->module_ctx.super = user->v;
 
 	/* Read the global configuration */
@@ -100,5 +100,5 @@ void antispam_user_created(struct mail_user *user)
 #undef EMPTY_STR
 	return;
 bailout:
-	p_free(global_pool, asu);
+	p_free(user->pool, asu);
 }

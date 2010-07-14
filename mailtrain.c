@@ -43,7 +43,7 @@ struct mailtrain_config {
 
 bool mailtrain_init(struct mail_user *user, void **data)
 {
-	struct mailtrain_config *cfg = p_new(global_pool, struct mailtrain_config, 1);
+	struct mailtrain_config *cfg = p_new(user->pool, struct mailtrain_config, 1);
 	const char *tmp;
 
 #define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
@@ -71,7 +71,7 @@ bool mailtrain_init(struct mail_user *user, void **data)
 
 	tmp = config(user, "mail_sendmail_args");
 	if (!EMPTY_STR(tmp)) {
-		cfg->args = (const char * const *) p_strsplit(global_pool, tmp, ";");
+		cfg->args = (const char * const *) p_strsplit(user->pool, tmp, ";");
 		cfg->args_num = str_array_length(cfg->args);
 	}
 
@@ -86,7 +86,7 @@ bool mailtrain_init(struct mail_user *user, void **data)
 	return TRUE;
 
 bailout:
-	p_free(global_pool, cfg);
+	p_free(user->pool, cfg);
 	*data = NULL;
 	return FALSE;
 }
@@ -126,7 +126,7 @@ static int run_sendmail(struct mail_storage *storage,
 		int sz = sizeof(char *) * (1 + cfg->args_num + 1);
 		unsigned int i;
 
-		argv = p_new(global_pool, char *, sz);
+		argv = i_new(char *, sz);
 		argv[0] = (char *) cfg->binary;
 
 		for (i = 0; i < cfg->args_num; i++)
@@ -222,16 +222,16 @@ void *mailtrain_transaction_begin(
 	struct mailtrain_transaction_context *mttc;
 	char *tmp;
 
-	mttc = p_new(global_pool, struct mailtrain_transaction_context, 1);
+	mttc = i_new(struct mailtrain_transaction_context, 1);
 	mttc->messages = 0;
 
-	tmp = p_strconcat(global_pool, mail_user_get_temp_prefix(box->storage->user),
+	tmp = i_strconcat(mail_user_get_temp_prefix(box->storage->user),
 			"XXXXXX", NULL);
 
 	mttc->tmpdir = mkdtemp(tmp);
 	
 	if (!mttc->tmpdir)
-		p_free(global_pool, tmp);
+		i_free(tmp);
 	else
 		mttc->tmplen = strlen(mttc->tmpdir);
 
@@ -243,7 +243,7 @@ int mailtrain_transaction_commit(struct mailbox *box, void *data)
 	struct mailtrain_transaction_context *mttc = data;
 	int ret;
 	if (!mttc->tmpdir) {
-		p_free(global_pool, mttc);
+		i_free(mttc);
 		return 0;
 	}
 
@@ -251,8 +251,8 @@ int mailtrain_transaction_commit(struct mailbox *box, void *data)
 
 	clear_tmpdir(mttc);
 
-	p_free(global_pool, mttc->tmpdir);
-	p_free(global_pool, mttc);
+	i_free(mttc->tmpdir);
+	i_free(mttc);
 
 	return ret;
 }
@@ -268,10 +268,10 @@ void mailtrain_transaction_rollback(
 
 	if (mttc->tmpdir) {
 		clear_tmpdir(mttc);
-		p_free(global_pool, mttc->tmpdir);
+		i_free(mttc->tmpdir);
 	}
 
-	p_free(global_pool, mttc);
+	i_free(mttc);
 }
 
 int mailtrain_handle_mail(struct mailbox_transaction_context *t,

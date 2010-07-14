@@ -227,7 +227,7 @@ antispam_transaction_begin(struct mailbox *box,
 
 	ret = asmb->module_ctx.super.transaction_begin(box, flags);
 
-	astr = p_new(global_pool, struct antispam_transaction, 1);
+	astr = i_new(struct antispam_transaction, 1);
 	astr->data = asu->backend->transaction_begin(box, flags);
 
 	MODULE_CONTEXT_SET(ret, antispam_transaction_module, astr);
