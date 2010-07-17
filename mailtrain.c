@@ -23,6 +23,7 @@
 #include <fcntl.h>
 
 #include "lib.h"
+#include "str.h"
 #include "istream.h"
 #include "ostream.h"
 
@@ -225,11 +226,17 @@ void *mailtrain_transaction_begin(
 	mttc = i_new(struct mailtrain_transaction_context, 1);
 	mttc->messages = 0;
 
-	tmp = i_strconcat(mail_user_get_temp_prefix(box->storage->user),
-			"XXXXXX", NULL);
+	T_BEGIN
+	{
+		string_t* str = t_str_new(0);
+		mail_user_set_get_temp_prefix(str, box->storage->user->set);
+		str_append(str, "XXXXXX");
+		tmp = i_strdup(str_c(str));
+	}
+	T_END;
 
 	mttc->tmpdir = mkdtemp(tmp);
-	
+
 	if (!mttc->tmpdir)
 		i_free(tmp);
 	else
