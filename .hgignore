@@ -1,0 +1,6 @@
+lib90_antispam_plugin.so
+
+syntax: glob
+
+*.o
+.*.swp
