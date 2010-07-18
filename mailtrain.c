@@ -93,9 +93,9 @@ bailout:
 }
 
 struct mailtrain_transaction_context {
-	char *tmpdir;
-	int messages;
-	int tmplen;
+	string_t *tmpdir;
+	size_t tmplen;
+	unsigned int messages;
 };
 
 static int run_sendmail(struct mail_storage *storage,
@@ -157,90 +157,76 @@ static int run_sendmail(struct mail_storage *storage,
 static int process_tmpdir(struct mailbox *box,
 			  struct mailtrain_transaction_context *mttc)
 {
-	int cnt = mttc->messages;
+	unsigned int cnt = mttc->messages;
 	int fd;
-	char *buf;
 	bool spam;
 	int rc = 0;
 
-	T_BEGIN
-	{
-		buf = t_malloc(20 + mttc->tmplen);
+	while (rc == 0 && cnt > 0) {
+		cnt--;
+		str_printfa(mttc->tmpdir, "/%u", cnt);
 
-		while (rc == 0 && cnt > 0) {
-			cnt--;
-			i_snprintf(buf, 20 + mttc->tmplen - 1, "%s/%d",
-					mttc->tmpdir, cnt);
-
-			if ((fd = open(buf, O_RDONLY)) == -1) {
-				mail_storage_set_error_from_errno(box->storage);
-				rc = -1;
-				break;
-			}
-
-			if (read(fd, &spam, sizeof(spam)) == -1) {
-				mail_storage_set_error_from_errno(box->storage);
-				rc = -1;
-				close(fd);
-				break;
-			}
-
-			if (run_sendmail(box->storage, fd, spam) != 0)
-				rc = -1;
-
-			close(fd);
+		if ((fd = open(str_c(mttc->tmpdir), O_RDONLY)) == -1) {
+			mail_storage_set_error_from_errno(box->storage);
+			rc = -1;
+			break;
 		}
-	}
-	T_END;
 
+		if (read(fd, &spam, sizeof(spam)) == -1) {
+			mail_storage_set_error_from_errno(box->storage);
+			rc = -1;
+			close(fd);
+			break;
+		}
+
+		str_truncate(mttc->tmpdir, mttc->tmplen);
+
+		if (run_sendmail(box->storage, fd, spam) != 0)
+			rc = -1;
+
+		close(fd);
+	}
+
+	str_truncate(mttc->tmpdir, mttc->tmplen);
 	return rc;
 }
 
 static void clear_tmpdir(struct mailtrain_transaction_context *mttc)
 {
-	char *buf;
-
-	T_BEGIN
-	{
-		buf = t_malloc(20 + mttc->tmplen);
-
-		while (mttc->messages > 0) {
-			mttc->messages--;
-			i_snprintf(buf, 20 + mttc->tmplen - 1, "%s/%d",
-				   mttc->tmpdir, mttc->messages);
-			unlink(buf);
-		}
+	while (mttc->messages > 0) {
+		mttc->messages--;
+		str_printfa(mttc->tmpdir, "/%u", mttc->messages);
+		unlink(str_c(mttc->tmpdir));
+		str_truncate(mttc->tmpdir, mttc->tmplen);
 	}
-	T_END;
 
-	rmdir(mttc->tmpdir);
+	rmdir(str_c(mttc->tmpdir));
 }
 
 void *mailtrain_transaction_begin(
 		struct mailbox *box,
 		enum mailbox_transaction_flags flags ATTR_UNUSED)
 {
-	struct mailtrain_transaction_context *mttc;
-	char *tmp;
+	struct mailtrain_transaction_context *mttc = NULL;
 
 	mttc = i_new(struct mailtrain_transaction_context, 1);
+
+	if (mttc == NULL)
+		return NULL;
+
 	mttc->messages = 0;
 
-	T_BEGIN
+	mttc->tmpdir = str_new(default_pool, 0);
+	if (mttc->tmpdir == NULL)
 	{
-		string_t* str = t_str_new(0);
-		mail_user_set_get_temp_prefix(str, box->storage->user->set);
-		str_append(str, "XXXXXX");
-		tmp = i_strdup(str_c(str));
+		i_free(mttc);
+		return NULL;
 	}
-	T_END;
 
-	mttc->tmpdir = mkdtemp(tmp);
+	mail_user_set_get_temp_prefix(mttc->tmpdir, box->storage->user->set);
+	str_append(mttc->tmpdir, "XXXXXX");
 
-	if (!mttc->tmpdir)
-		i_free(tmp);
-	else
-		mttc->tmplen = strlen(mttc->tmpdir);
+	mttc->tmplen = str_len(mttc->tmpdir);
 
 	return mttc;
 }
@@ -249,7 +235,11 @@ int mailtrain_transaction_commit(struct mailbox *box, void *data)
 {
 	struct mailtrain_transaction_context *mttc = data;
 	int ret;
-	if (!mttc->tmpdir) {
+
+	if (mttc == NULL)
+		return 0;
+
+	if (mttc->tmpdir == NULL) {
 		i_free(mttc);
 		return 0;
 	}
@@ -258,7 +248,7 @@ int mailtrain_transaction_commit(struct mailbox *box, void *data)
 
 	clear_tmpdir(mttc);
 
-	i_free(mttc->tmpdir);
+	str_free(&mttc->tmpdir);
 	i_free(mttc);
 
 	return ret;
@@ -273,9 +263,10 @@ void mailtrain_transaction_rollback(
 	if (mttc == NULL)
 		return;
 
-	if (mttc->tmpdir) {
+	if (mttc->tmpdir != NULL)
+	{
 		clear_tmpdir(mttc);
-		i_free(mttc->tmpdir);
+		str_free(&mttc->tmpdir);
 	}
 
 	i_free(mttc);
@@ -291,15 +282,24 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t,
 	struct istream *mailstream;
 	struct ostream *outstream;
 	int ret = 0;
-	char *buf;
 	const unsigned char *beginning;
 	size_t size;
 	int fd;
 
-	if (!mttc->tmpdir) {
+	if (mttc == NULL)
+	{
 		mail_storage_set_error(t->box->storage,
-				       MAIL_ERROR_NOTPOSSIBLE,
-				       "Failed to initialise temporary dir");
+			MAIL_ERROR_NOTPOSSIBLE,
+			"Internal error during transaction initialization");
+		return -1;
+	}
+
+	if (str_c(mttc->tmpdir)[mttc->tmplen - 1] == 'X' &&
+		mkdtemp(str_c_modifiable(mttc->tmpdir)) == NULL)
+	{
+		mail_storage_set_error(t->box->storage,
+			MAIL_ERROR_NOTPOSSIBLE,
+			"Failed to initialize temporary dir");
 		return -1;
 	}
 
@@ -310,69 +310,66 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t,
 		return -1;
 	}
 
-	T_BEGIN
+	str_printfa(mttc->tmpdir, "/%u", mttc->messages);
 
-		buf = t_malloc(20 + mttc->tmplen);
-		i_snprintf(buf, 20 + mttc->tmplen - 1, "%s/%d",
-				mttc->tmpdir, mttc->messages);
+	fd = creat(str_c(mttc->tmpdir), 0600);
+	if (fd == -1) {
+		mail_storage_set_error_from_errno(t->box->storage);
+		ret = -1;
+		goto out;
+	}
 
-		fd = creat(buf, 0600);
-		if (fd == -1) {
-			mail_storage_set_error_from_errno(t->box->storage);
-			ret = -1;
-			goto out;
-		}
+	mttc->messages++;
 
-		mttc->messages++;
+	outstream = o_stream_create_fd(fd, 0, FALSE);
+	if (!outstream) {
+		ret = -1;
+		mail_storage_set_error(t->box->storage,
+				MAIL_ERROR_NOTPOSSIBLE,
+				"Failed to stream temporary file");
+		goto out_close;
+	}
 
-		outstream = o_stream_create_fd(fd, 0, FALSE);
-		if (!outstream) {
+	if (o_stream_send(outstream, &spam, sizeof(spam))
+			!= sizeof(spam)) {
+		ret = -1;
+		mail_storage_set_error(t->box->storage,
+				MAIL_ERROR_NOTPOSSIBLE,
+				"Failed to write marker to temp file");
+		goto failed_to_copy;
+	}
+
+	if (asu->skip_from_line == TRUE) {
+		if (i_stream_read_data(mailstream, &beginning, &size, 5) < 0 ||
+				size < 5) {
 			ret = -1;
 			mail_storage_set_error(t->box->storage,
 					MAIL_ERROR_NOTPOSSIBLE,
-					"Failed to stream temporary file");
-			goto out_close;
-		}
-
-		if (o_stream_send(outstream, &spam, sizeof(spam))
-				!= sizeof(spam)) {
-			ret = -1;
-			mail_storage_set_error(t->box->storage,
-					MAIL_ERROR_NOTPOSSIBLE,
-					"Failed to write marker to temp file");
+					"Failed to read mail beginning");
 			goto failed_to_copy;
 		}
 
-		if (asu->skip_from_line == TRUE) {
-			if (i_stream_read_data(mailstream, &beginning, &size, 5) < 0 ||
-					size < 5) {
-				ret = -1;
-				mail_storage_set_error(t->box->storage,
-						MAIL_ERROR_NOTPOSSIBLE,
-						"Failed to read mail beginning");
-				goto failed_to_copy;
-			}
-
-			if (memcmp("From ", beginning, 5) == 0)
-				i_stream_read_next_line(mailstream);
-			else
-				o_stream_send(outstream, &beginning, 5);
-		}
-		
-		if (o_stream_send_istream(outstream, mailstream) < 0) {
-			ret = -1;
-			mail_storage_set_error(t->box->storage,
-					MAIL_ERROR_NOTPOSSIBLE,
-					"Failed to copy to temporary file");
-			goto failed_to_copy;
-		}
+		if (memcmp("From ", beginning, 5) == 0)
+			i_stream_read_next_line(mailstream);
+		else
+			o_stream_send(outstream, &beginning, 5);
+	}
+	
+	if (o_stream_send_istream(outstream, mailstream) < 0) {
+		ret = -1;
+		mail_storage_set_error(t->box->storage,
+				MAIL_ERROR_NOTPOSSIBLE,
+				"Failed to copy to temporary file");
+		goto failed_to_copy;
+	}
 
 failed_to_copy:
-		o_stream_destroy(&outstream);
+	o_stream_destroy(&outstream);
 out_close:
-		close(fd);
+	close(fd);
 out:
-	T_END;
+
+	str_truncate(mttc->tmpdir, mttc->tmplen);
 
 	return ret;
 }
