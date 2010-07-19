@@ -8,14 +8,10 @@
 bool mailtrain_init(struct mail_user *user, void **data);
 
 void *mailtrain_transaction_begin(struct mailbox *box,
-		enum mailbox_transaction_flags flags);
-int mailtrain_transaction_commit(struct mailbox *box,
-		void *data);
-void mailtrain_transaction_rollback(struct mailbox *box,
-		void *data);
-int mailtrain_handle_mail(struct mailbox_transaction_context *t,
-		void *data,
-		struct mail *mail,
-		bool spam);
+	enum mailbox_transaction_flags flags);
+int mailtrain_transaction_commit(struct mailbox *box, void *data);
+void mailtrain_transaction_rollback(struct mailbox *box, void *data);
+int mailtrain_handle_mail(struct mailbox_transaction_context *t, void *data,
+	struct mail *mail, bool spam);
 
 #endif

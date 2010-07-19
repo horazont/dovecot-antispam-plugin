@@ -10,7 +10,7 @@ static struct antispam_backend backends[BACKENDS_COUNT];
 
 void register_backends()
 {
-	int index = 0;
+    int index = 0;
 
 #define REG_BACKEND(name) \
 	backends[index++] = (struct antispam_backend) { \
@@ -22,18 +22,18 @@ void register_backends()
 		name ## _handle_mail, \
 	};
 
-	REG_BACKEND(mailtrain);
+    REG_BACKEND(mailtrain);
 
 #undef REG_BACKEND
 }
 
-struct antispam_backend* find_backend(const char *title)
+struct antispam_backend *find_backend(const char *title)
 {
-	int i;
+    int i;
 
-	for (i = 0; i < BACKENDS_COUNT; i++)
-		if (strcmp(backends[i].title, title) == 0)
-			return &(backends[i]);
+    for (i = 0; i < BACKENDS_COUNT; i++)
+	if (strcmp(backends[i].title, title) == 0)
+	    return &(backends[i]);
 
-	return NULL;
+    return NULL;
 }

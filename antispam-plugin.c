@@ -7,20 +7,20 @@
 #include "backends.h"
 
 static struct mail_storage_hooks antispam_plugin_hooks = {
-	.mail_user_created = antispam_user_created,
-	.mailbox_allocated = antispam_mailbox_allocated
+    .mail_user_created = antispam_user_created,
+    .mailbox_allocated = antispam_mailbox_allocated
 };
 
 void antispam_plugin_init(struct module *module)
 {
-	register_backends();
+    register_backends();
 
-	mail_storage_hooks_add(module, &antispam_plugin_hooks);
+    mail_storage_hooks_add(module, &antispam_plugin_hooks);
 }
 
 void antispam_plugin_deinit(void)
 {
-	mail_storage_hooks_remove(&antispam_plugin_hooks);
+    mail_storage_hooks_remove(&antispam_plugin_hooks);
 }
 
 const char *antispam_plugin_version = DOVECOT_VERSION;
