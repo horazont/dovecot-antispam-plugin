@@ -292,8 +292,6 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t, void *data,
     struct istream *mailstream;
     struct ostream *outstream;
     int ret = 0;
-    const unsigned char *beginning;
-    size_t size;
     int fd;
 
     if (mttc == NULL)
@@ -349,6 +347,9 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t, void *data,
 
     if (asu->skip_from_line == TRUE)
     {
+	const unsigned char *beginning;
+	size_t size;
+
 	if (i_stream_read_data(mailstream, &beginning, &size, 5) < 0
 		|| size < 5)
 	{
