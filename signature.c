@@ -16,7 +16,7 @@ struct signature_data
 bool signature_init(struct mail_user *user, void **data)
 {
     struct signature_data *cfg = p_new(user->pool, struct signature_data, 1);
-    const char* tmp;
+    const char *tmp;
 
     if (cfg == NULL)
 	goto fail;
@@ -38,12 +38,11 @@ bool signature_init(struct mail_user *user, void **data)
     {
 	if (strcmp(tmp, "move") == 0)
 	    cfg->ignore_missing = TRUE;
-	else
-	    if (strcmp(tmp, "error") != 0)
-	    {
-		i_debug("invalid value for signature_missing");
-		goto bailout;
-	    }
+	else if (strcmp(tmp, "error") != 0)
+	{
+	    i_debug("invalid value for signature_missing");
+	    goto bailout;
+	}
     }
 
 #undef EMPTY_STR
