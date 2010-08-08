@@ -1,6 +1,8 @@
 #include <stdlib.h>
 
+#include "lib.h"
 #include "mail-storage.h"
+#include "mail-user.h"
 
 #include "aux.h"
 #include "signature.h"
@@ -11,9 +13,9 @@ struct signature_data
     bool ignore_missing;
 };
 
-bool signature_init(mail_user *user, void **data)
+bool signature_init(struct mail_user *user, void **data)
 {
-    struct signature_data cfg = p_new(user->pool, struct signature_data, 1);
+    struct signature_data *cfg = p_new(user->pool, struct signature_data, 1);
     const char* tmp;
 
     if (cfg == NULL)
@@ -58,15 +60,16 @@ fail:
 
 int signature_extract(void *data, struct mail *mail, const char **signature)
 {
+    struct signature_data *cfg = data;
     const char *const *signatures;
     int ret;
 
     *signature = NULL;
 
-    ret = mail_get_headers_utf8(mail, data->header, &signatures);
+    ret = mail_get_headers_utf8(mail, cfg->header, &signatures);
 
     if (ret != 1)
-	return data->ignore_missing == TRUE ? 0 : -1;
+	return cfg->ignore_missing == TRUE ? 0 : -1;
 
     while (signatures[1])
 	signatures++;

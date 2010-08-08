@@ -1,14 +1,17 @@
 #ifndef ANTISPAM_SIGNATURE_H
 #define ANTISPAM_SIGNATURE_H
 
+#include "lib.h"
+#include "mail-user.h"
+
 struct siglist
 {
-    const char *sig;
+    char *sig;
     bool spam;
     struct siglist *next;
 };
 
-bool signature_init(mail_user *user, void **data);
+bool signature_init(struct mail_user *user, void **data);
 
 int signature_extract(void *data, struct mail *mail, const char **signature);
 
