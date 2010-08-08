@@ -10,6 +10,7 @@ AC_PROG_CPP
 AC_PROG_LN_S
 AC_PROG_INSTALL
 
+AC_CONFIG_SRCDIR(src)
 AC_CONFIG_FILES([buildsys.mk extra.mk])
 AC_CONFIG_HEADERS(config.h)
 
