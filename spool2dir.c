@@ -120,6 +120,9 @@ bool spool2dir_init(struct mail_user *user, void **data)
 
     cfg = p_new(user->pool, struct spool2dir_config, 1);
 
+    if (cfg == NULL)
+	goto fail;
+
 #define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
 
     tmp = config(user, "spool2dir_spam");
@@ -146,6 +149,7 @@ bool spool2dir_init(struct mail_user *user, void **data)
 
 bailout:
     p_free(user->pool, cfg);
+fail:
     *data = NULL;
     return FALSE;
 }

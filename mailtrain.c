@@ -49,6 +49,9 @@ bool mailtrain_init(struct mail_user *user, void **data)
 	    p_new(user->pool, struct mailtrain_config, 1);
     const char *tmp;
 
+    if (cfg == NULL)
+	goto fail;
+
 #define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
 
     tmp = config(user, "mail_sendmail");
@@ -94,6 +97,7 @@ bool mailtrain_init(struct mail_user *user, void **data)
 
 bailout:
     p_free(user->pool, cfg);
+fail:
     *data = NULL;
     return FALSE;
 }
