@@ -11,8 +11,6 @@ SRCS = \
 
 PLUGIN = lib90_antispam_plugin${PLUGIN_SUFFIX}
 
-DISTCLEAN = buildsys.mk config.h config.log config.status
-
 include ../buildsys.mk
 include ../extra.mk
 
