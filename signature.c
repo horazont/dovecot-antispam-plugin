@@ -1,0 +1,121 @@
+#include <stdlib.h>
+
+#include "mail-storage.h"
+
+#include "aux.h"
+#include "signature.h"
+
+struct signature_data
+{
+    const char *header;
+    bool ignore_missing;
+};
+
+bool signature_init(mail_user *user, void **data)
+{
+    struct signature_data cfg = p_new(user->pool, struct signature_data, 1);
+    const char* tmp;
+
+    if (cfg == NULL)
+	goto fail;
+
+#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
+
+    tmp = config(user, "signature");
+    if (EMPTY_STR(tmp))
+    {
+	i_debug("empty signature");
+	goto bailout;
+    }
+    cfg->header = tmp;
+
+    tmp = config(user, "signature_missing");
+    if (EMPTY_STR(tmp))
+	cfg->ignore_missing = FALSE;
+    else
+    {
+	if (strcmp(tmp, "move") == 0)
+	    cfg->ignore_missing = TRUE;
+	else
+	    if (strcmp(tmp, "error") != 0)
+	    {
+		i_debug("invalid value for signature_missing");
+		goto bailout;
+	    }
+    }
+
+#undef EMPTY_STR
+
+    *data = cfg;
+    return TRUE;
+
+bailout:
+    p_free(user->pool, cfg);
+fail:
+    *data = NULL;
+    return FALSE;
+}
+
+int signature_extract(void *data, struct mail *mail, const char **signature)
+{
+    const char *const *signatures;
+    int ret;
+
+    *signature = NULL;
+
+    ret = mail_get_headers_utf8(mail, data->header, &signatures);
+
+    if (ret != 1)
+	return data->ignore_missing == TRUE ? 0 : -1;
+
+    while (signatures[1])
+	signatures++;
+
+    *signature = signatures[0];
+
+    return 0;
+}
+
+void signature_list_append(struct siglist *list, const char *sig, bool spam)
+{
+    struct siglist *ptr;
+    struct siglist *item;
+
+    if (list == NULL || sig == NULL)
+	return;
+
+    ptr = list;
+
+    while (ptr->next != NULL)
+	ptr = ptr->next;
+
+    item = i_new(struct siglist, 1);
+    i_assert(item != NULL);
+
+    ptr->next = item;
+
+    item->sig = i_strdup(sig);
+    item->spam = spam;
+    item->next = NULL;
+}
+
+void signature_list_free(struct siglist **list)
+{
+    struct siglist *item;
+    struct siglist *next;
+
+    if (list == NULL || *list == NULL)
+	return;
+
+    item = *list;
+
+    while (item)
+    {
+	next = item->next;
+
+	i_free(item->sig);
+	i_free(item);
+
+	item = next;
+    }
+}
