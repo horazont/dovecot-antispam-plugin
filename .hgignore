@@ -1,6 +1,13 @@
 lib90_antispam_plugin.so
 
+autom4te.cache
+aclocal.m4
+buildsys.mk
+extra.mk
+.deps
+
 syntax: glob
 
 *.o
 .*.swp
+config*
