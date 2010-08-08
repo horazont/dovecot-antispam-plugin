@@ -1,0 +1,14 @@
+NAME
+  dovecot-antispam - The dovecot plugin for spam systems training.
+
+AUTHORS
+    ORIGINAL AUTHORS
+	Original authors of the dovecot-antispam plugin for dovecot versions prior to 2.0.
+
+	* Johannes Berg;
+	* Frank Cusack;
+	* Benedikt Boehm;
+	* Andreas Schneider.
+
+    THIS FORK AUTHOR AND MAINTAINER
+	* Eugene Paskevich <eugene@raptor.kiev.ua>.
