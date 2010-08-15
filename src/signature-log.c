@@ -47,6 +47,7 @@
 
 struct singature_log_config
 {
+    const char *base_dir;
     const char *dict_uri;
     const char *dict_user;
     void *sig_data;
@@ -57,6 +58,8 @@ bool signature_log_init(struct mail_user *user, void **data)
     struct singature_log_config *cfg =
 	    p_new(user->pool, struct singature_log_config, 1);
     const char *tmp;
+
+    cfg->base_dir = mail_user_plugin_getenv(user, "base_dir");
 
 #define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
 
@@ -117,7 +120,7 @@ void *signature_log_transaction_begin(struct mailbox *box,
 
     sltc->dict =
 	    dict_init(cfg->dict_uri, DICT_DATA_TYPE_STRING, cfg->dict_user,
-	    NULL);
+	    cfg->base_dir);
 
     if (sltc->dict == NULL)
     {
