@@ -45,7 +45,7 @@
 #include "user.h"
 
 
-struct singature_log_config
+struct signature_log_config
 {
     const char *base_dir;
     const char *dict_uri;
@@ -55,8 +55,8 @@ struct singature_log_config
 
 bool signature_log_init(struct mail_user *user, void **data)
 {
-    struct singature_log_config *cfg =
-	    p_new(user->pool, struct singature_log_config, 1);
+    struct signature_log_config *cfg =
+	    p_new(user->pool, struct signature_log_config, 1);
     const char *tmp;
 
     cfg->base_dir = mail_user_plugin_getenv(user, "base_dir");
@@ -108,7 +108,7 @@ void *signature_log_transaction_begin(struct mailbox *box,
 {
     struct signature_log_transaction_context *sltc = NULL;
     struct antispam_user *asu = USER_CONTEXT(box->storage->user);
-    struct singature_log_config *cfg = asu->backend_config;
+    struct signature_log_config *cfg = asu->backend_config;
 
     if (cfg == NULL)
 	return NULL;
