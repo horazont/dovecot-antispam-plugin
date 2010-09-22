@@ -59,6 +59,9 @@ bool signature_log_init(struct mail_user *user, void **data)
 	    p_new(user->pool, struct signature_log_config, 1);
     const char *tmp;
 
+    if (cfg == NULL)
+	goto fail;
+
     cfg->base_dir = mail_user_plugin_getenv(user, "base_dir");
 
 #define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
@@ -93,6 +96,7 @@ bool signature_log_init(struct mail_user *user, void **data)
 
 bailout:
     p_free(user->pool, cfg);
+fail:
     *data = NULL;
     return FALSE;
 }
