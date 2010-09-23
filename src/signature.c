@@ -99,6 +99,7 @@ void signature_list_append(struct siglist *list, const char *sig, bool spam)
     item->sig = i_strdup(sig);
     item->spam = spam;
     item->next = NULL;
+    i_assert(item->sig != NULL);
 }
 
 void signature_list_free(struct siglist **list)
