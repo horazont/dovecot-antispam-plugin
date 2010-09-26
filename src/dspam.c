@@ -94,7 +94,7 @@ static int call_dspam(struct mail_storage *storage, const char *sig, bool spam)
 	    if (readsize > 0)
 	    {
 		buf[readsize] = '\0';
-		debug("dspam error: %s\n", buf);
+		i_debug("dspam error: %s\n", buf);
 	    }
 	}
 	while (readsize == -2 || readsize > 0);
