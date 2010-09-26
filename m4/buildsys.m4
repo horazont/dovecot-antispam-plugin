@@ -20,6 +20,53 @@ dnl ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 dnl POSSIBILITY OF SUCH DAMAGE.
 dnl
 
+AC_DEFUN([BUILDSYS_INIT], [
+	AC_PATH_PROG(TPUT, tput)
+
+	AS_IF([test x"$TPUT" != x""], [
+		if $TPUT el >/dev/null; then
+			AC_SUBST(TERM_EL, "$($TPUT el)")
+		else
+			AC_SUBST(TERM_EL, "$($TPUT ce)")
+		fi
+
+		if $TPUT sgr0 >/dev/null; then
+			AC_SUBST(TERM_SGR0, "$($TPUT sgr0)")
+		else
+			AC_SUBST(TERM_SGR0, "$($TPUT me)")
+		fi
+
+		if $TPUT bold >/dev/null; then
+			AC_SUBST(TERM_BOLD, "$($TPUT bold)")
+		else
+			AC_SUBST(TERM_BOLD, "$($TPUT md)")
+		fi
+
+		if $TPUT setaf 1 >/dev/null; then
+			AC_SUBST(TERM_SETAF1, "$($TPUT setaf 1)")
+			AC_SUBST(TERM_SETAF2, "$($TPUT setaf 2)")
+			AC_SUBST(TERM_SETAF3, "$($TPUT setaf 3)")
+			AC_SUBST(TERM_SETAF4, "$($TPUT setaf 4)")
+			AC_SUBST(TERM_SETAF6, "$($TPUT setaf 6)")
+		else
+			AC_SUBST(TERM_SETAF1, "$($TPUT AF 1)")
+			AC_SUBST(TERM_SETAF2, "$($TPUT AF 2)")
+			AC_SUBST(TERM_SETAF3, "$($TPUT AF 3)")
+			AC_SUBST(TERM_SETAF4, "$($TPUT AF 4)")
+			AC_SUBST(TERM_SETAF6, "$($TPUT AF 6)")
+		fi
+	], [
+		AC_SUBST(TERM_EL, '\033\133K')
+		AC_SUBST(TERM_SGR0, '\033\133m')
+		AC_SUBST(TERM_BOLD, '\033\1331m')
+		AC_SUBST(TERM_SETAF1, '\033\13331m')
+		AC_SUBST(TERM_SETAF2, '\033\13332m')
+		AC_SUBST(TERM_SETAF3, '\033\13333m')
+		AC_SUBST(TERM_SETAF4, '\033\13334m')
+		AC_SUBST(TERM_SETAF6, '\033\13336m')
+	])
+])
+
 AC_DEFUN([BUILDSYS_PROG_IMPLIB], [
 	AC_REQUIRE([AC_CANONICAL_HOST])
 	AC_MSG_CHECKING(whether we need an implib)
@@ -130,7 +177,7 @@ AC_DEFUN([BUILDSYS_SHARED_LIB], [
 ])
 
 AC_DEFUN([BUILDSYS_TOUCH_DEPS], [
-	${as_echo:="echo"} "${as_me:="configure"}: touching .deps files"
+	${as_echo:="echo"} ${as_me:="configure"}": touching .deps files"
 	for i in $(find . -name Makefile); do
 		DEPSFILE="$(dirname $i)/.deps"
 		test -f "$DEPSFILE" && rm "$DEPSFILE"

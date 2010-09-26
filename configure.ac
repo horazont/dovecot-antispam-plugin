@@ -3,6 +3,8 @@ AC_PREREQ(2.54)
 AC_INIT([dovecot-antispam], [2.0.0], [eugene@raptor.kiev.ua])
 AC_SUBST(PACKAGE, dovecot)
 
+BUILDSYS_INIT
+BUILDSYS_PROG_IMPLIB
 BUILDSYS_SHARED_LIB
 
 AC_PROG_CC
