@@ -21,8 +21,6 @@ bool signature_init(struct mail_user *user, void **data)
     if (cfg == NULL)
 	goto fail;
 
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
-
     tmp = config(user, "signature");
     if (EMPTY_STR(tmp))
     {
@@ -44,8 +42,6 @@ bool signature_init(struct mail_user *user, void **data)
 	    goto bailout;
 	}
     }
-
-#undef EMPTY_STR
 
     *data = cfg;
     return TRUE;

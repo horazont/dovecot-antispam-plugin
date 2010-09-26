@@ -168,8 +168,6 @@ bool dspam_init(struct mail_user *user, void **data)
     if (cfg == NULL)
 	goto fail;
 
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
-
     cfg->binary = config(user, "dspam_binary");
     if (EMPTY_STR(cfg->binary))
 	cfg->binary = "/usr/bin/dspam";
@@ -200,7 +198,6 @@ bool dspam_init(struct mail_user *user, void **data)
 	    cfg->result_bl_num = str_array_length(cfg->result_bl);
 	}
     }
-#undef EMPTY_STR
 
     if (signature_init(user, &cfg->sig_data) == FALSE)
     {

@@ -64,8 +64,6 @@ bool signature_log_init(struct mail_user *user, void **data)
 
     cfg->base_dir = mail_user_plugin_getenv(user, "base_dir");
 
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
-
     tmp = config(user, "siglog_dict_uri");
     if (EMPTY_STR(tmp))
     {
@@ -81,8 +79,6 @@ bool signature_log_init(struct mail_user *user, void **data)
 	goto bailout;
     }
     cfg->dict_user = tmp;
-
-#undef EMPTY_STR
 
     if (signature_init(user, &cfg->sig_data) == FALSE)
     {

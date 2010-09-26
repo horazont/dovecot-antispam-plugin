@@ -8,4 +8,6 @@ bool match_exact(const char *box_name, const char *query_name);
 bool match_pattern(const char *box_name, const char *query_name);
 bool match_ipattern(const char *box_name, const char *query_name);
 
+#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
+
 #endif

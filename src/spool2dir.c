@@ -123,8 +123,6 @@ bool spool2dir_init(struct mail_user *user, void **data)
     if (cfg == NULL)
 	goto fail;
 
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
-
     tmp = config(user, "spool2dir_spam");
     if (EMPTY_STR(tmp))
     {
@@ -140,8 +138,6 @@ bool spool2dir_init(struct mail_user *user, void **data)
 	goto bailout;
     }
     cfg->ham = tmp;
-
-#undef EMPTY_STR
 
     *data = cfg;
 

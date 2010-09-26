@@ -52,8 +52,6 @@ bool mailtrain_init(struct mail_user *user, void **data)
     if (cfg == NULL)
 	goto fail;
 
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
-
     tmp = config(user, "mail_sendmail");
     if (EMPTY_STR(tmp))
     {
@@ -88,8 +86,6 @@ bool mailtrain_init(struct mail_user *user, void **data)
     tmp = config(user, "mail_skip_from");
     if (!EMPTY_STR(tmp) && strcasecmp(tmp, "yes") == 0)
 	cfg->skip_from = TRUE;
-
-#undef EMPTY_STR
 
     *data = cfg;
 

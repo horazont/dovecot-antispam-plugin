@@ -58,7 +58,6 @@ void antispam_user_created(struct mail_user *user)
     asu->module_ctx.super = user->v;
 
     /* Read the global configuration */
-#define EMPTY_STR(arg) ((arg) == NULL || *(arg) == '\0')
 
     tmp = config(user, "backend");
     if (EMPTY_STR(tmp))
@@ -95,8 +94,8 @@ void antispam_user_created(struct mail_user *user)
     }
 
     MODULE_CONTEXT_SET(user, antispam_user_module, asu);
-#undef EMPTY_STR
     return;
+
 bailout:
     p_free(user->pool, asu);
 }
