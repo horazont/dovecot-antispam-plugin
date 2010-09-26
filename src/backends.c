@@ -6,7 +6,8 @@
 #include "mailtrain.h"
 #include "spool2dir.h"
 #include "signature-log.h"
-#define BACKENDS_COUNT 3
+#include "dspam.h"
+#define BACKENDS_COUNT 4
 
 static struct antispam_backend backends[BACKENDS_COUNT];
 
@@ -27,6 +28,7 @@ void register_backends()
     REG_BACKEND(mailtrain);
     REG_BACKEND(spool2dir);
     REG_BACKEND(signature_log);
+    REG_BACKEND(dspam);
 
 #undef REG_BACKEND
 }
