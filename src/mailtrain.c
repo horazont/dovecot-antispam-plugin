@@ -37,7 +37,6 @@ struct mailtrain_config
 {
     const char *binary;
     const char *const *args;
-    bool skip_from;
     unsigned int args_num;
     const char *spam;
     const char *non_spam;
@@ -82,10 +81,6 @@ bool mailtrain_init(struct mail_user *user, void **data)
 	cfg->args = (const char *const *) p_strsplit(user->pool, tmp, ";");
 	cfg->args_num = str_array_length(cfg->args);
     }
-
-    tmp = config(user, "mail_skip_from");
-    if (!EMPTY_STR(tmp) && strcasecmp(tmp, "yes") == 0)
-	cfg->skip_from = TRUE;
 
     *data = cfg;
 
