@@ -38,7 +38,7 @@ struct antispam_backend *find_backend(const char *title)
     int i;
 
     for (i = 0; i < BACKENDS_COUNT; i++)
-	if (strcmp(backends[i].title, title) == 0)
+	if (strcasecmp(backends[i].title, title) == 0)
 	    return &(backends[i]);
 
     return NULL;
