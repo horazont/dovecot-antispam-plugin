@@ -74,6 +74,13 @@ int signature_extract(void *data, struct mail *mail, const char **signature)
     return 0;
 }
 
+const char *signature_header(void *data)
+{
+    struct signature_data *cfg = data;
+
+    return cfg->header;
+}
+
 void signature_list_append(struct siglist *list, const char *sig, bool spam)
 {
     struct siglist *ptr;
