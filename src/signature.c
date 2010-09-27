@@ -34,9 +34,9 @@ bool signature_init(struct mail_user *user, void **data)
 	cfg->ignore_missing = FALSE;
     else
     {
-	if (strcmp(tmp, "move") == 0)
+	if (strcasecmp(tmp, "move") == 0)
 	    cfg->ignore_missing = TRUE;
-	else if (strcmp(tmp, "error") != 0)
+	else if (strcasecmp(tmp, "error") != 0)
 	{
 	    i_debug("invalid value for signature_missing");
 	    goto bailout;
