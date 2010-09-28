@@ -2,6 +2,7 @@ SRCS = \
        antispam-plugin.c \
        aux.c \
        backends.c \
+       crm114.c \
        dspam.c \
        mailbox.c \
        mailtrain.c \
