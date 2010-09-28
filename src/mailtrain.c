@@ -128,7 +128,7 @@ static int run_sendmail(struct mail_storage *storage, int mailfd, bool spam)
     {
 	int dnull = open("/dev/null", O_WRONLY);
 	char **argv;
-	int sz = sizeof(char *) * (1 + cfg->args_num + 1);
+	int sz = sizeof(char *) * (2 + cfg->args_num + 1);
 	unsigned int i;
 
 	argv = i_new(char *, sz);
