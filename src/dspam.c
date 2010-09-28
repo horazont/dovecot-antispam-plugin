@@ -117,8 +117,8 @@ static int call_dspam(struct mail_storage *storage, const char *sig, bool spam)
 	struct antispam_user *asu = USER_CONTEXT(storage->user);
 	struct dspam_config *cfg = asu->backend_config;
 
-	/* 1 fixed arg, extra args, terminating NULL */
-	int sz = sizeof(const char *) * (1 + cfg->args_num + 1);
+	/* 2 fixed arg, extra args, terminating NULL */
+	int sz = sizeof(const char *) * (2 + cfg->args_num + 1);
 	const char **argv = i_malloc(sz);
 
 	int fd = open("/dev/null", O_RDONLY);
