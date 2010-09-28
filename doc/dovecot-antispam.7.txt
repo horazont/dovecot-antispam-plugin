@@ -1,14 +1,246 @@
 NAME
-  dovecot-antispam - The dovecot plugin for spam systems training.
+    dovecot-antispam - The dovecot plugin for spam systems training.
+
+DISCLAIMER
+    This is the fork of the antispam dovecot plugin as the original one is
+    aimed for dovecot versions before 2.0 and the respectful authors weren't
+    going to update it.
+
+    You can find the original version at
+    http://johannes.sipsolutions.net/Projects/dovecot-antispam
+
+    Even though most of the things were adopted, some things did change.
+    Please read this manual carefully. You have been warned.
+
+DESCRIPTION
+    The dovecot antispam plugin is aimed to help in spam systems training.
+    Consider the following scenario. Your mailbox is flooded with tons of mail.
+    They are delivered to the configured folders based on the arbitrary spam
+    system judgement. This judgement is not always correct or not always what
+    you would like it to be, however. This is where this plugin comes into play.
+
+    All you have to do is move the mail into the correct folder. All the rest
+    in order to let the spam system know it made an error will be done
+    automatically by this plugin.
+
+    It watches for when you move the mail to some folder and acts accordingly.
+    The advantage of this approach is that the mail ends up in the right target
+    folder directly and needs not be touched twice.
+
+FOLDER MATRIX
+    This plugin has internally four types of folders. Different actions are
+    programmed when you move the mail from one folder to the other.
+    The following table describes the actions depending on the source and
+    destination folders.
+
+	┏━━━━━━━━━┳━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━┓
+	┃ dst╲src ┃ SPAM ┃ TRASH ┃ UNSURE ┃ OTHER ┃
+	┣━━━━━━━━━╋━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━┩
+	┃   SPAM  ┃  /   │   /   │   -    │   -   │
+	┣━━━━━━━━━╉──────┼───────┼────────┼───────┤
+	┃  TRASH  ┃  /   │   /   │   *    │   /   │
+	┣━━━━━━━━━╉──────┼───────┼────────┼───────┤
+	┃ UNSURE  ┃  *   │   *   │   *    │   *   │
+	┣━━━━━━━━━╉──────┼───────┼────────┼───────┤
+	┃  OTHER  ┃  +   │   /   │   +    │   /   │
+	┗━━━━━━━━━┹──────┴───────┴────────┴───────┘
+
+    Legend:
+	/  move is ignored
+	*  move is forbidden
+	-  classify as spam
+	+  classify as ham
+
+BACKENDS
+    The plugin supports multiple backends, for different kinds of spam systems.
+
+ MAILTRAIN
+    This backend is aimed to send mail to some e-mail address for retraining.
+    Which makes it very fast to set up if you already have a working setup that
+    uses training addresses as recommended by many spam systems.
+
+    Since this backend simply pipes the message to an external program it can
+    also be used for all kinds of other spam systems with help of the wrapper
+    to make all the work for you. E.g. for spamassassin you can call sa-learn
+    or spamc.
+
+ SPOOL2DIR
+    This backend spools the message into a file. No further processing is
+    performed. You need to write an extra daemon that picks up the spooled files
+    and trains the spam filter appropriately. You can, for example, use incron
+    to pick up new mail from those files.
+
+ DSPAM
+    This backend instantly retrains by calling dspam client with appropriate
+    arguments. There is an ability to circumvent mail retraining based on an
+    arbitrary header (configurable) value.
+
+ CRM114
+    This backend instantly retrains by calling mailreaver.crm script.
+    The command line argument --good or --spam (by default) is given depending
+    on how the mail is moved.
+
+    You need to use the unsure folder option (see below) together with this
+    plugin and deliver unsure mail into an UNSURE folder, spam mail into a
+    SPAM folder and other mail regularly.
+
+ SIGNATURE-LOG
+    This backend collects the information about the mails in the dovecot
+    dictionary incrementing the value of the name-value pair each time the
+    message is retrained as spam and decrementing each time otherwise.
+    Further processing of the dictionary contents is left to be the user's
+    responsibility.
+
+INSTALLATION
+    Open your dovecot configuration file (usually /etc/dovecot/dovecot.conf)
+    and add the antispam plugin to the imap protocol section:
+
+	protocol imap {
+	    mail_plugins = $mail_plugins antispam
+	}
+
+CONFIGURATION
+    All of the run-time configuration options shown below are to be put into
+    the plugin section of the dovecot configuration file.
+
+ PARAMETER TYPES
+    string  Case-sensitive string;
+    istring  Case-insensitive string;
+    lstring  Case-sensitive string list, semicolon separated;
+    ilstring  Case-insensitive string list, semicolon separated;
+    boolean  Case-insensitive boolean (YES/NO);
+
+ GLOBAL OPTIONS
+    antispam_backend (istring)  Selects the specific backend to be used for spam
+    system training. Obligatory, default = NONE.
+
+    antispam_allow_append_to_spam (boolean)  Specifies whether to allow
+    appending mails to the spam folder from the unknown source. See the
+    ALLOWING APPENDS section below for the details on why it is not advised
+    to turn this option on. Optional, default = NO.
+
+    antispam_skip_from_line (boolean)  Specifies whether to skip the leading
+    "From " line of the mail piped to the backend processor.
+    Optional, default = NO.
+
+ FOLDER OPTIONS
+    You must configure the list for at least one of the SPAM, TRASH, and UNSURE
+    folders using the following parameters. By default all of them are unset.
+
+    antispam_spam, antispam_trash, antispam_unsure (lstring)  static lists to
+    match the folder names literally case sensitive.
+
+    antispam_spam_pattern, antispam_trash_pattern, antispam_unsure_pattern (lstring)  
+    wildcard lists to match the beginning of the folder names. I.e. wildcard
+    could be specified in the end only. Identical to the static lists otherwise.
+
+    antispam_spam_pattern_ignorecase, antispam_trash_pattern_ignorecase, antispam_unsure_pattern_ignorecase (ilstring)  
+    same as the previous, but case insensitive.
+
+ SIGNATURE ENGINE OPTIONS
+    Several backends are based on the signature header processing.
+
+    antispam_signature (string)  header name to extract the mail signature from.
+    Obligatory, default = NONE.
+
+    antispam_signature_missing (istring)  specifies what to do if the signature
+    header is missing. Possible values: "move" (move the mail silently without
+    training), "error" (display an error stating that the signature header is
+    missing). Optional, default = "error".
+
+ MAILTRAIN SPECIFIC OPTIONS
+    antispam_mail_sendmail (string)  specifies the binary to execute.
+    Obligatory, default = NONE.
+
+    antispam_mail_sendmail_args (lstring)  specifies the arguments to be passed
+    to the binary in the command line. Optional, default = NONE.
+
+    antispam_mail_spam (string)  specifies the final command line argument in
+    case when processed mail is SPAM. Obligatory, default = NONE.
+
+    antispam_mail_notspam (string)  specifies the final command line argument
+    in case when processed mail is not SPAM. Obligatory, default = NONE.
+
+ SPOOL2DIR SPECIFIC OPTIONS
+    Both options below must have "%%lu" specified with any legal C modifier two
+    times. The first one is replaced with the current time (epoch). The second
+    one is replaced with the incrementing counter to make sure the file name is
+    unique.
+
+    antispam_spool2dir_spam (string)  filename template with full path for mails
+    marked as SPAM. Obligatory, default = NONE.
+
+    antispam_spool2dir_notspam (string)  filename template with full path for
+    mails marked as not SPAM. Obligatory, default = NONE.
+
+ DSPAM SPECIFIC OPTIONS
+    This backend is based on the signature engine.
+
+    antispam_dspam_binary (string)  specifies the path to the dspam client
+    binary. Optional, default = "/usr/bin/dspam".
+
+    antispam_dspam_args (lstring)  list of command line arguments to the dspam
+    binary. Must include one "%%s" in order to be replaced with the signature
+    value. Optional, default = "--source=error;--signature=%%s".
+
+    antispam_dspam_spam (string)  command line argument to specify that mail
+    should be reclassified as SPAM. Optional, default = "--class=spam".
+
+    antispam_dspam_notspam (string)  command line argument to specify that mail
+    should be reclassified as not SPAM. Optional, default = "--class=innocent".
+
+    antispam_dspam_result_header (string)  specifies the mail header name to
+    derive the classification result. Optional, default = NONE.
+
+    antispam_dspam_result_blacklist (ilstring)  specifies the list of
+    classification results to avoid retraining for. Optional, default = NONE.
+
+ CRM114 SPECIFIC OPTIONS
+    This backend is based on the signature engine.
+
+    antispam_crm_binary (string)  specifies the path to the mailreaver.crm
+    script. Optional, default = "/usr/share/crm114/mailreaver.crm".
+
+    antispam_crm_args (lstring)  list of command line arguments to the
+    mailreaver.crm script. Optional, default = NONE.
+
+    antispam_crm_spam (string)  command line argument to specify that mail
+    should be reclassified as SPAM. Optional, default = "--spam".
+
+    antispam_crm_notspam (string)  command line argument to specify that mail
+    should be reclassified as not SPAM. Optional, default = "--good".
+
+ SIGNATURE-LOG SPECIFIC OPTIONS
+    This backend is based on the signature engine.
+
+    antispam_siglog_dict_uri (string)  specifies the URI of the dovecot
+    dictionary to connect to. Obligatory, default = NONE.
+
+    antispam_siglog_dict_user (string)  specifies the user credentials used
+    to connect to the dovecot dictionary. Obligatory, default = NONE.
+
+ALLOWING APPENDS
+    By appends we mean the case of mail moving when the source folder is
+    unknown, e.g. when you move from some other account or with tools like
+    offlineimap. You should be careful with allowing APPENDs to SPAM folders.
+    The reason for possibly allowing it is to allow not-SPAM --> SPAM
+    transitions to work and be trained. However, because the plugin cannot
+    know the source of the message (it is assumed to be from OTHER folder),
+    multiple bad scenarios can happen:
+
+    1. SPAM --> SPAM transitions cannot be recognised and are trained;
+    2. TRASH --> SPAM transitions cannot be recognised and are trained;
+    3. SPAM --> not-SPAM transitions cannot be recognised therefore training
+    good messages will never work with APPENDs.
 
 AUTHORS
-    ORIGINAL AUTHORS
-	Original authors of the dovecot-antispam plugin for dovecot versions prior to 2.0.
+ ORIGINAL AUTHORS
+    Original authors of the dovecot-antispam plugin for dovecot versions prior to 2.0.
 
-	* Johannes Berg;
-	* Frank Cusack;
-	* Benedikt Boehm;
-	* Andreas Schneider.
+    * Johannes Berg;
+    * Frank Cusack;
+    * Benedikt Boehm;
+    * Andreas Schneider.
 
-    THIS FORK AUTHOR AND MAINTAINER
-	* Eugene Paskevich <eugene@raptor.kiev.ua>.
+ THIS FORK AUTHOR AND MAINTAINER
+    * Eugene Paskevich <eugene@raptor.kiev.ua>.

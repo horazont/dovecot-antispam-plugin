@@ -6,6 +6,8 @@ buildsys.mk
 extra.mk
 .deps
 
+doc/dovecot-antispam.7
+
 syntax: glob
 
 *.o
