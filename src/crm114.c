@@ -43,7 +43,8 @@ struct crm114_config
     void *sig_data;
 };
 
-static int call_reaver(struct mail_storage *storage, const char *signature, bool spam)
+static int call_reaver(struct mail_storage *storage, const char *signature,
+	bool spam)
 {
     struct antispam_user *asu = USER_CONTEXT(storage->user);
     struct crm114_config *cfg = asu->backend_config;
@@ -80,15 +81,18 @@ static int call_reaver(struct mail_storage *storage, const char *signature, bool
 	 */
 	waitpid(pid, &status, 0);
 	if (!WIFEXITED(status))
-		return 1;
+	    return 1;
 
 	return WEXITSTATUS(status);
-    } else {
+    }
+    else
+    {
 	/* 2 fixed, extra args, terminating NULL */
 	int sz = sizeof(const char *) * (2 + cfg->args_num + 1);
 	const char **argv = i_malloc(sz);
 	int fd = open("/dev/null", O_RDONLY);
-	int i = 0, k = 0;
+	int i = 0;
+	int k = 0;
 
 	close(0);
 	close(1);
@@ -97,26 +101,26 @@ static int call_reaver(struct mail_storage *storage, const char *signature, bool
 	close(pipes[1]);
 
 	if (dup2(pipes[0], 0) != 0)
-		exit(1);
+	    exit(1);
 	close(pipes[0]);
 
 	if (dup2(fd, 1) != 1)
-		exit(1);
+	    exit(1);
 	if (dup2(fd, 2) != 2)
-		exit(1);
+	    exit(1);
 	close(fd);
 
 	argv[i++] = cfg->binary;
 
 	for (k = 0; k < cfg->args_num; k++)
-		argv[i++] = cfg->args[k];
+	    argv[i++] = cfg->args[k];
 
 	argv[i++] = spam ? cfg->spam : cfg->non_spam;
 
-	execv(cfg->binary, (char * const*) argv);
+	execv(cfg->binary, (char *const *) argv);
 	/* fall through if reaver can't be found */
-	i_debug("executing %s failed: %d (uid=%d, gid=%d)",
-		cfg->binary, errno, getuid(), getgid());
+	i_debug("executing %s failed: %d (uid=%d, gid=%d)", cfg->binary, errno,
+		getuid(), getgid());
 	exit(127);
 	/* not reached */
 	return -1;
