@@ -56,14 +56,14 @@ fail:
 int signature_extract(void *data, struct mail *mail, const char **signature)
 {
     struct signature_data *cfg = data;
-    const char *const *signatures;
+    const char *const *signatures = NULL;
     int ret;
 
     *signature = NULL;
 
     ret = mail_get_headers_utf8(mail, cfg->header, &signatures);
 
-    if (ret != 1)
+    if (ret < 0)
 	return cfg->ignore_missing == TRUE ? 0 : -1;
 
     while (signatures[1])
