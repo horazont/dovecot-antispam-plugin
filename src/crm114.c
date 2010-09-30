@@ -247,6 +247,6 @@ int crm114_handle_mail(struct mailbox_transaction_context *t, void *data,
 	return -1;
     }
 
-    signature_list_append(ctc->siglist, sig, spam);
+    signature_list_append(&ctc->siglist, sig, spam);
     return 0;
 }

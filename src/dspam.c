@@ -308,6 +308,6 @@ int dspam_handle_mail(struct mailbox_transaction_context *t, void *data,
 	return -1;
     }
 
-    signature_list_append(dtc->siglist, sig, spam);
+    signature_list_append(&dtc->siglist, sig, spam);
     return 0;
 }
