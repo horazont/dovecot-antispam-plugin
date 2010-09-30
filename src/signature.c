@@ -81,28 +81,32 @@ const char *signature_header(void *data)
     return cfg->header;
 }
 
-void signature_list_append(struct siglist *list, const char *sig, bool spam)
+void signature_list_append(struct siglist **list, const char *sig, bool spam)
 {
     struct siglist *ptr;
-    struct siglist *item;
 
     if (list == NULL || sig == NULL)
 	return;
 
-    ptr = list;
+    if (*list == NULL)
+    {
+	*list = i_new(struct siglist, 1);
+	i_assert(*list != NULL);
+    }
+    ptr = *list;
 
     while (ptr->next != NULL)
 	ptr = ptr->next;
 
-    item = i_new(struct siglist, 1);
-    i_assert(item != NULL);
+    if (ptr->sig != NULL)
+    {
+	ptr = ptr->next = i_new(struct siglist, 1);
+	i_assert(ptr != NULL);
+    }
 
-    ptr->next = item;
-
-    item->sig = i_strdup(sig);
-    item->spam = spam;
-    item->next = NULL;
-    i_assert(item->sig != NULL);
+    ptr->sig = i_strdup(sig);
+    ptr->spam = spam;
+    i_assert(ptr->sig != NULL);
 }
 
 void signature_list_free(struct siglist **list)
