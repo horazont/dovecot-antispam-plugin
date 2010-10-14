@@ -28,36 +28,30 @@ enum mailbox_copy_type
 
 static enum mailbox_class antispam_mailbox_classify(struct mailbox *box)
 {
-    enum mailbox_class ret = CLASS_OTHER;
     const char *name = mailbox_get_name(box);
-    struct antispam_user *user = USER_CONTEXT(box->storage->user);
+    struct antispam_user *asu = USER_CONTEXT(box->storage->user);
     enum match_type i;
     char **iter;
 
 #define CHECK(folders, class) \
-	for (i = 0; i < NUM_MT; i++) \
+    for (i = 0; i < NUM_MT; i++) \
+    { \
+	iter = asu->folders[i]; \
+	if (!iter) \
+	    continue; \
+	while (*iter) \
 	{ \
-		iter = user->folders[i]; \
-		if (!iter) \
-			continue; \
-		while (*iter) \
-		{ \
-			if (match_info[i].fn(name, *iter)) \
-			{ \
-				ret = class; \
-				break; \
-			} \
-			iter++; \
-		} \
-		if (ret != CLASS_OTHER) \
-			return ret; \
-	}
+	    if (match_info[i].fn(name, *iter)) \
+		return class; \
+	    iter++; \
+	} \
+    }
 
     CHECK(folders_spam, CLASS_SPAM);
     CHECK(folders_trash, CLASS_TRASH);
     CHECK(folders_unsure, CLASS_UNSURE);
 
-    return ret;
+    return CLASS_OTHER;
 #undef CHECK
 }
 
