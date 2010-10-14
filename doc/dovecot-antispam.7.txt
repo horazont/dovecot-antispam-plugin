@@ -126,6 +126,8 @@ CONFIGURATION
  FOLDER OPTIONS
     You must configure the list for at least one of the SPAM, TRASH, and UNSURE
     folders using the following parameters. By default all of them are unset.
+    The order of precedence is: SPAM, TRASH, UNSURE, i.e. if you put the same
+    folder name into TRASH and UNSURE then the folder is considered to be TRASH.
 
     antispam_spam, antispam_trash, antispam_unsure (lstring)  static lists to
     match the folder names literally case sensitive.
