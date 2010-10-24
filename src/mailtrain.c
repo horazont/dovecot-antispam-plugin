@@ -169,21 +169,20 @@ static int process_tmpdir(struct mailbox *box,
     while (rc == 0 && cnt > 0)
     {
 	cnt--;
-	str_printfa(mttc->tmpdir, "/%u", cnt);
+	str_printfa(mttc->tmpdir, "/s%u", cnt);
+	spam = TRUE;
 
 	if ((fd = open(str_c(mttc->tmpdir), O_RDONLY)) == -1)
 	{
-	    mail_storage_set_error_from_errno(box->storage);
-	    rc = -1;
-	    break;
-	}
-
-	if (read(fd, &spam, sizeof(spam)) == -1)
-	{
-	    mail_storage_set_error_from_errno(box->storage);
-	    rc = -1;
-	    close(fd);
-	    break;
+	    str_truncate(mttc->tmpdir, mttc->tmplen);
+	    str_printfa(mttc->tmpdir, "/h%u", cnt);
+	    spam = FALSE;
+	    if ((fd = open(str_c(mttc->tmpdir), O_RDONLY)) == -1)
+	    {
+		mail_storage_set_error_from_errno(box->storage);
+		rc = -1;
+		break;
+	    }
 	}
 
 	str_truncate(mttc->tmpdir, mttc->tmplen);
@@ -203,7 +202,10 @@ static void clear_tmpdir(struct mailtrain_transaction_context *mttc)
     while (mttc->messages > 0)
     {
 	mttc->messages--;
-	str_printfa(mttc->tmpdir, "/%u", mttc->messages);
+	str_printfa(mttc->tmpdir, "/s%u", mttc->messages);
+	unlink(str_c(mttc->tmpdir));
+	str_truncate(mttc->tmpdir, mttc->tmplen);
+	str_printfa(mttc->tmpdir, "/h%u", mttc->messages);
 	unlink(str_c(mttc->tmpdir));
 	str_truncate(mttc->tmpdir, mttc->tmplen);
     }
@@ -311,7 +313,7 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t, void *data,
 	return -1;
     }
 
-    str_printfa(mttc->tmpdir, "/%u", mttc->messages);
+    str_printfa(mttc->tmpdir, "/%c%u", spam ? 's' : 'h', mttc->messages);
 
     fd = creat(str_c(mttc->tmpdir), 0600);
     if (fd == -1)
@@ -330,14 +332,6 @@ int mailtrain_handle_mail(struct mailbox_transaction_context *t, void *data,
 	mail_storage_set_error(t->box->storage, MAIL_ERROR_NOTPOSSIBLE,
 		"Failed to stream temporary file");
 	goto out_close;
-    }
-
-    if (o_stream_send(outstream, &spam, sizeof(spam)) != sizeof(spam))
-    {
-	ret = -1;
-	mail_storage_set_error(t->box->storage, MAIL_ERROR_NOTPOSSIBLE,
-		"Failed to write marker to temp file");
-	goto failed_to_copy;
     }
 
     if (asu->skip_from_line == TRUE)
