@@ -14,7 +14,6 @@ static MODULE_CONTEXT_DEFINE_INIT(antispam_transaction_module,
 struct antispam_transaction
 {
     union mailbox_transaction_module_context module_ctx;
-    struct mail *mail;
     void *data;			// Backend specific data is stored here.
 };
 
@@ -53,24 +52,6 @@ static enum mailbox_class antispam_mailbox_classify(struct mailbox *box)
 
     return CLASS_OTHER;
 #undef CHECK
-}
-
-static void antispam_mail_check_alloc(struct mail_save_context *ctx)
-{
-    struct mailbox_transaction_context *t = ctx->transaction;
-    struct antispam_transaction *ast = TRANSACTION_CONTEXT(t);
-
-    if (!ctx->dest_mail)
-    {
-	if (!ast->mail)
-	{
-	    ast->mail =
-		    mail_alloc(t,
-		    MAIL_FETCH_STREAM_HEADER | MAIL_FETCH_STREAM_BODY, NULL);
-	}
-
-	ctx->dest_mail = ast->mail;
-    }
 }
 
 static enum mailbox_copy_type antispam_classify_copy(enum mailbox_class src,
@@ -142,13 +123,10 @@ static int antispam_copy(struct mail_save_context *ctx, struct mail *mail)
 	    break;
     }
 
-    antispam_mail_check_alloc(ctx);
-
     if (asmb->module_ctx.super.copy(ctx, mail) != 0)
 	return -1;
 
-    return asu->backend->handle_mail(t, ast->data, ctx->dest_mail,
-	    copy_type == MCT_SPAM);
+    return asu->backend->handle_mail(t, ast->data, mail, copy_type == MCT_SPAM);
 }
 
 static int antispam_save_begin(struct mail_save_context *ctx,
@@ -179,9 +157,6 @@ static int antispam_save_begin(struct mail_save_context *ctx,
 		    "This type of copy is forbidden");
 	    return -1;
 	}
-
-	if (copy_type != MCT_IGNORE)
-	    antispam_mail_check_alloc(ctx);
     }
 
     return asmb->module_ctx.super.save_begin(ctx, input);
@@ -195,16 +170,14 @@ static int antispam_save_finish(struct mail_save_context *ctx)
     struct antispam_user *asu = USER_CONTEXT(t->box->storage->user);
 
     // if we are copying then copy() code will do everything needed
-    if (ctx->copying != 0)
-	return asmb->module_ctx.super.save_finish(ctx);
+    int ret = asmb->module_ctx.super.save_finish(ctx);
+    if (ctx->copying != 0 || ret != 0)
+	return ret;
 
     // since there is no source mailbox, let's assume
     // we're saving from unclassified mailbox
     enum mailbox_copy_type copy_type =
 	    antispam_classify_copy(CLASS_OTHER, asmb->box_class);
-
-    if (asmb->module_ctx.super.save_finish(ctx) != 0)
-	return -1;
 
     return copy_type == MCT_IGNORE ? 0 : asu->backend->handle_mail(t,
 	    ast->data, ctx->dest_mail, copy_type == MCT_SPAM);
@@ -237,13 +210,6 @@ static int antispam_transaction_commit(struct mailbox_transaction_context *t,
     struct antispam_user *asu = USER_CONTEXT(box->storage->user);
     struct antispam_transaction *ast = TRANSACTION_CONTEXT(t);
 
-    if (ast->mail != NULL)
-    {
-	mail_free(&ast->mail);
-	ast->mail = NULL;
-	t->save_ctx->dest_mail = NULL;
-    }
-
     if ((ret = asmb->module_ctx.super.transaction_commit(t, changes_r)) != 0)
     {
 	asu->backend->transaction_rollback(box, ast->data);
@@ -262,13 +228,6 @@ static void antispam_transaction_rollback(struct mailbox_transaction_context
     struct antispam_mailbox *asmb = STORAGE_CONTEXT(t->box);
     struct antispam_user *asu = USER_CONTEXT(t->box->storage->user);
     struct antispam_transaction *ast = TRANSACTION_CONTEXT(t);
-
-    if (ast->mail != NULL)
-    {
-	mail_free(&ast->mail);
-	ast->mail = NULL;
-	t->save_ctx->dest_mail = NULL;
-    }
 
     asu->backend->transaction_rollback(t->box, ast->data);
     asmb->module_ctx.super.transaction_rollback(t);
