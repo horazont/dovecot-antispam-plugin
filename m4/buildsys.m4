@@ -1,7 +1,8 @@
 dnl
-dnl Copyright (c) 2007 - 2009, Jonathan Schleifer <js@webkeks.org>
+dnl Copyright (c) 2007, 2008, 2009, 2010, 2011, 2012
+dnl Jonathan Schleifer <js@webkeks.org>
 dnl
-dnl https://webkeks.org/hg/buildsys/
+dnl https://webkeks.org/git/?p=buildsys.git
 dnl
 dnl Permission to use, copy, modify, and/or distribute this software for any
 dnl purpose with or without fee is hereby granted, provided that the above
@@ -21,39 +22,44 @@ dnl POSSIBILITY OF SUCH DAMAGE.
 dnl
 
 AC_DEFUN([BUILDSYS_INIT], [
+	AC_SUBST(CC_DEPENDS, $GCC)
+	AC_SUBST(CXX_DEPENDS, $GXX)
+	AC_SUBST(OBJC_DEPENDS, $GOBJC)
+	AC_SUBST(OBJCXX_DEPENDS, $GOBJCXX)
+
 	AC_PATH_PROG(TPUT, tput)
 
 	AS_IF([test x"$TPUT" != x""], [
-		if $TPUT el >/dev/null; then
-			AC_SUBST(TERM_EL, "$($TPUT el)")
+		if x=$($TPUT el 2>/dev/null); then
+			AC_SUBST(TERM_EL, "$x")
 		else
-			AC_SUBST(TERM_EL, "$($TPUT ce)")
+			AC_SUBST(TERM_EL, "$($TPUT ce 2>/dev/null)")
 		fi
 
-		if $TPUT sgr0 >/dev/null; then
-			AC_SUBST(TERM_SGR0, "$($TPUT sgr0)")
+		if x=$($TPUT sgr0 2>/dev/null); then
+			AC_SUBST(TERM_SGR0, "$x")
 		else
-			AC_SUBST(TERM_SGR0, "$($TPUT me)")
+			AC_SUBST(TERM_SGR0, "$($TPUT me 2>/dev/null)")
 		fi
 
-		if $TPUT bold >/dev/null; then
-			AC_SUBST(TERM_BOLD, "$($TPUT bold)")
+		if x=$($TPUT bold 2>/dev/null); then
+			AC_SUBST(TERM_BOLD, "$x")
 		else
-			AC_SUBST(TERM_BOLD, "$($TPUT md)")
+			AC_SUBST(TERM_BOLD, "$($TPUT md 2>/dev/null)")
 		fi
 
-		if $TPUT setaf 1 >/dev/null; then
-			AC_SUBST(TERM_SETAF1, "$($TPUT setaf 1)")
-			AC_SUBST(TERM_SETAF2, "$($TPUT setaf 2)")
-			AC_SUBST(TERM_SETAF3, "$($TPUT setaf 3)")
-			AC_SUBST(TERM_SETAF4, "$($TPUT setaf 4)")
-			AC_SUBST(TERM_SETAF6, "$($TPUT setaf 6)")
+		if x=$($TPUT setaf 1 2>/dev/null); then
+			AC_SUBST(TERM_SETAF1, "$x")
+			AC_SUBST(TERM_SETAF2, "$($TPUT setaf 2 2>/dev/null)")
+			AC_SUBST(TERM_SETAF3, "$($TPUT setaf 3 2>/dev/null)")
+			AC_SUBST(TERM_SETAF4, "$($TPUT setaf 4 2>/dev/null)")
+			AC_SUBST(TERM_SETAF6, "$($TPUT setaf 6 2>/dev/null)")
 		else
-			AC_SUBST(TERM_SETAF1, "$($TPUT AF 1)")
-			AC_SUBST(TERM_SETAF2, "$($TPUT AF 2)")
-			AC_SUBST(TERM_SETAF3, "$($TPUT AF 3)")
-			AC_SUBST(TERM_SETAF4, "$($TPUT AF 4)")
-			AC_SUBST(TERM_SETAF6, "$($TPUT AF 6)")
+			AC_SUBST(TERM_SETAF1, "$($TPUT AF 1 2>/dev/null)")
+			AC_SUBST(TERM_SETAF2, "$($TPUT AF 2 2>/dev/null)")
+			AC_SUBST(TERM_SETAF3, "$($TPUT AF 3 2>/dev/null)")
+			AC_SUBST(TERM_SETAF4, "$($TPUT AF 4 2>/dev/null)")
+			AC_SUBST(TERM_SETAF6, "$($TPUT AF 6 2>/dev/null)")
 		fi
 	], [
 		AC_SUBST(TERM_EL, '\033\133K')
@@ -100,23 +106,23 @@ AC_DEFUN([BUILDSYS_SHARED_LIB], [
 			LDFLAGS_RPATH='-Wl,-rpath,${libdir}'
 			PLUGIN_CFLAGS='-fPIC -DPIC'
 			PLUGIN_LDFLAGS='-bundle -undefined dynamic_lookup'
-			PLUGIN_SUFFIX='.impl'
-			INSTALL_LIB='${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib && ${LN_S} -f $${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.dylib && ${LN_S} -f $${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib ${DESTDIR}${libdir}/$$i'
-			UNINSTALL_LIB='rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.dylib ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib'
+			PLUGIN_SUFFIX='.bundle'
+			INSTALL_LIB='&& ${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib && install_name_tool -id ${libdir}/$${i%.dylib}.${LIB_MAJOR}.dylib ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib && ${LN_S} -f $${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.dylib && ${LN_S} -f $${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib ${DESTDIR}${libdir}/$$i'
+			UNINSTALL_LIB='&& rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.dylib ${DESTDIR}${libdir}/$${i%.dylib}.${LIB_MAJOR}.${LIB_MINOR}.dylib'
 			CLEAN_LIB=''
 			;;
 		solaris*)
 			AC_MSG_RESULT(Solaris)
 			LIB_CFLAGS='-fPIC -DPIC'
-			LIB_LDFLAGS='-shared -Wl,-soname=${LIB}.${LIB_MAJOR}.${LIB_MINOR}'
+			LIB_LDFLAGS='-shared -Wl,-soname=${SHARED_LIB}.${LIB_MAJOR}.${LIB_MINOR}'
 			LIB_PREFIX='lib'
 			LIB_SUFFIX='.so'
 			LDFLAGS_RPATH='-Wl,-rpath,${libdir}'
 			PLUGIN_CFLAGS='-fPIC -DPIC'
 			PLUGIN_LDFLAGS='-shared'
 			PLUGIN_SUFFIX='.so'
-			INSTALL_LIB='${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR} && rm -f ${DESTDIR}${libdir}/$$i && ${LN_S} $$i.${LIB_MAJOR}.${LIB_MINOR} ${DESTDIR}${libdir}/$$i'
-			UNINSTALL_LIB='rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}'
+			INSTALL_LIB='&& ${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR} && rm -f ${DESTDIR}${libdir}/$$i && ${LN_S} $$i.${LIB_MAJOR}.${LIB_MINOR} ${DESTDIR}${libdir}/$$i'
+			UNINSTALL_LIB='&& rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}'
 			CLEAN_LIB=''
 			;;
 		openbsd* | mirbsd*)
@@ -129,36 +135,36 @@ AC_DEFUN([BUILDSYS_SHARED_LIB], [
 			PLUGIN_CFLAGS='-fPIC -DPIC'
 			PLUGIN_LDFLAGS='-shared'
 			PLUGIN_SUFFIX='.so'
-			INSTALL_LIB='${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i'
-			UNINSTALL_LIB='rm -f ${DESTDIR}${libdir}/$$i'
+			INSTALL_LIB='&& ${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i'
+			UNINSTALL_LIB='&& rm -f ${DESTDIR}${libdir}/$$i'
 			CLEAN_LIB=''
 			;;
 		cygwin* | mingw*)
 			AC_MSG_RESULT(Win32)
 			LIB_CFLAGS=''
-			LIB_LDFLAGS='-shared -Wl,--out-implib,${LIB}.a'
+			LIB_LDFLAGS='-shared -Wl,--out-implib,${SHARED_LIB}.a'
 			LIB_PREFIX='lib'
 			LIB_SUFFIX='.dll'
 			LDFLAGS_RPATH='-Wl,-rpath,${libdir}'
 			PLUGIN_CFLAGS=''
 			PLUGIN_LDFLAGS='-shared'
 			PLUGIN_SUFFIX='.dll'
-			INSTALL_LIB='${MKDIR_P} ${DESTDIR}${bindir} && ${INSTALL} -m 755 $$i ${DESTDIR}${bindir}/$$i && ${INSTALL} -m 755 $$i.a ${DESTDIR}${libdir}/$$i.a'
-			UNINSTALL_LIB='rm -f ${DESTDIR}${bindir}/$$i ${DESTDIR}${libdir}/$$i.a'
-			CLEAN_LIB='${LIB}.a'
+			INSTALL_LIB='&& ${MKDIR_P} ${DESTDIR}${bindir} && ${INSTALL} -m 755 $$i ${DESTDIR}${bindir}/$$i && ${INSTALL} -m 755 $$i.a ${DESTDIR}${libdir}/$$i.a'
+			UNINSTALL_LIB='&& rm -f ${DESTDIR}${bindir}/$$i ${DESTDIR}${libdir}/$$i.a'
+			CLEAN_LIB='${SHARED_LIB}.a'
 			;;
 		*)
 			AC_MSG_RESULT(GNU)
 			LIB_CFLAGS='-fPIC -DPIC'
-			LIB_LDFLAGS='-shared -Wl,-soname=${LIB}.${LIB_MAJOR}'
+			LIB_LDFLAGS='-shared -Wl,-soname=${SHARED_LIB}.${LIB_MAJOR}'
 			LIB_PREFIX='lib'
 			LIB_SUFFIX='.so'
 			LDFLAGS_RPATH='-Wl,-rpath,${libdir}'
 			PLUGIN_CFLAGS='-fPIC -DPIC'
 			PLUGIN_LDFLAGS='-shared'
 			PLUGIN_SUFFIX='.so'
-			INSTALL_LIB='${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}.0 && ${LN_S} -f $$i.${LIB_MAJOR}.${LIB_MINOR}.0 ${DESTDIR}${libdir}/$$i.${LIB_MAJOR} && ${LN_S} -f $$i.${LIB_MAJOR}.${LIB_MINOR}.0 ${DESTDIR}${libdir}/$$i'
-			UNINSTALL_LIB='rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR} ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}.0'
+			INSTALL_LIB='&& ${INSTALL} -m 755 $$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}.0 && ${LN_S} -f $$i.${LIB_MAJOR}.${LIB_MINOR}.0 ${DESTDIR}${libdir}/$$i.${LIB_MAJOR} && ${LN_S} -f $$i.${LIB_MAJOR}.${LIB_MINOR}.0 ${DESTDIR}${libdir}/$$i'
+			UNINSTALL_LIB='&& rm -f ${DESTDIR}${libdir}/$$i ${DESTDIR}${libdir}/$$i.${LIB_MAJOR} ${DESTDIR}${libdir}/$$i.${LIB_MAJOR}.${LIB_MINOR}.0'
 			CLEAN_LIB=''
 			;;
 	esac

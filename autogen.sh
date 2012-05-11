@@ -1,46 +1,8 @@
-#! /bin/sh
-
-TOP_DIR=$(dirname $0)
-LAST_DIR=$PWD
-
-if test ! -f $TOP_DIR/configure.ac ; then
-    echo "You must execute this script from the top level directory."
-    exit 1
-fi
+#!/bin/sh
 
 AUTOCONF=${AUTOCONF:-autoconf}
 ACLOCAL=${ACLOCAL:-aclocal}
 AUTOHEADER=${AUTOHEADER:-autoheader}
-
-dump_help_screen ()
-{
-    echo "Usage: autogen.sh [options]"
-    echo 
-    echo "options:"
-    echo "  -n           skip CVS changelog creation"
-    echo "  -h,--help    show this help screen"
-    echo
-    exit 0
-}
-
-parse_options ()
-{
-    while test "$1" != "" ; do
-        case $1 in
-            -h|--help)
-                dump_help_screen
-                ;;
-            -n)
-                SKIP_CVS_CHANGELOG=yes
-                ;;
-            *)
-                echo Invalid argument - $1
-                dump_help_screen
-                ;;
-        esac
-        shift
-    done
-}
 
 run_or_die ()
 {
@@ -74,13 +36,8 @@ run_or_die ()
     return 0
 }
 
-parse_options "$@"
-
-cd $TOP_DIR
+cd $(dirname $0)
 
 run_or_die $ACLOCAL -I m4
 run_or_die $AUTOHEADER
 run_or_die $AUTOCONF
-
-cd $LAST_DIR
-
