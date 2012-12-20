@@ -23,4 +23,8 @@ void antispam_plugin_deinit(void)
     mail_storage_hooks_remove(&antispam_plugin_hooks);
 }
 
+#ifdef DOVECOT_ABI_VERSION
+const char *antispam_plugin_version = DOVECOT_ABI_VERSION;
+#else
 const char *antispam_plugin_version = DOVECOT_VERSION;
+#endif
