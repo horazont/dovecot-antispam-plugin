@@ -118,11 +118,8 @@ void *signature_log_transaction_begin(struct mailbox *box,
     if (sltc == NULL)
 	return NULL;
 
-    sltc->dict =
-	    dict_init(cfg->dict_uri, DICT_DATA_TYPE_STRING, cfg->dict_user,
-	    cfg->base_dir);
-
-    if (sltc->dict == NULL)
+    if (dict_init(cfg->dict_uri, DICT_DATA_TYPE_STRING, cfg->dict_user,
+		cfg->base_dir, &sltc->dict, NULL))
     {
 	i_free(sltc);
 	return NULL;
