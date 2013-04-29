@@ -118,8 +118,16 @@ void *signature_log_transaction_begin(struct mailbox *box,
     if (sltc == NULL)
 	return NULL;
 
+#if defined(DOVECOT_PREREQ) && DOVECOT_PREREQ(2,2)
     if (dict_init(cfg->dict_uri, DICT_DATA_TYPE_STRING, cfg->dict_user,
 		cfg->base_dir, &sltc->dict, NULL))
+#else
+    sltc->dict =
+           dict_init(cfg->dict_uri, DICT_DATA_TYPE_STRING, cfg->dict_user,
+           cfg->base_dir);
+
+    if (sltc->dict == NULL)
+#endif
     {
 	i_free(sltc);
 	return NULL;
