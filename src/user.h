@@ -62,6 +62,7 @@ struct antispam_user
     char **folders_unsure[NUM_MT];
 
     char **flags_spam;
+    char **flags_ham;
 
     // backend config vars pointer
     struct antispam_backend *backend;

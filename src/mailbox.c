@@ -45,12 +45,14 @@ static bool in_flags(const char *kwd, char *const *flags)
 
 static void find_relevant_flags(struct antispam_user *asu,
                                 const char *const *kwds,
-                                bool *has_spam)
+                                bool *has_spam,
+                                bool *has_ham)
 {
     const char *const *curr_kwd = kwds;
     for (; *curr_kwd; ++curr_kwd) {
         *has_spam = *has_spam || in_flags(*curr_kwd, asu->flags_spam);
-        if (*has_spam) {
+        *has_ham = *has_ham || in_flags(*curr_kwd, asu->flags_ham);
+        if (*has_spam && *has_ham) {
             // found, no need to continue
             break;
         }
@@ -285,18 +287,23 @@ static void antispam_mail_update_keywords(
     new_keywords = mail_get_keywords(_mail);
 
     bool old_has_spam = false;
+    bool old_has_ham = false;
     bool new_has_spam = false;
+    bool new_has_ham = false;
 
     find_relevant_flags(asu, old_keywords,
-                        &old_has_spam);
+                        &old_has_spam, &old_has_ham);
     find_relevant_flags(asu, mail_get_keywords(_mail),
-                        &new_has_spam);
+                        &new_has_spam, &new_has_ham);
 
-    const bool learn_as_ham = old_has_spam && !new_has_spam;
+    const bool learn_as_ham = (old_has_spam && !new_has_spam) || (!old_has_ham && new_has_ham);
     const bool learn_as_spam = !old_has_spam && new_has_spam;
 
-    i_debug("antispam: keywords changed: old_spam = %d, new_spam = %d\n",
-            old_has_spam, new_has_spam);
+    i_debug("antispam: keywords changed: "
+            "old_spam = %d, new_spam = %d, "
+            "old_ham = %d, new_ham = %d\n",
+            old_has_spam, new_has_spam,
+            old_has_ham, new_has_ham);
 
     if (learn_as_ham && learn_as_spam) {
         // wat.

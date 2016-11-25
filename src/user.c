@@ -103,10 +103,13 @@ void antispam_user_created(struct mail_user *user)
     parse_folders(user, "unsure", asu->folders_unsure);
 
     asu->flags_spam = NULL;
+    asu->flags_ham = NULL;
     parse_flags(user, "spam_flags", &asu->flags_spam);
+    parse_flags(user, "ham_flags", &asu->flags_ham);
 
     if (!(check_folders(asu->folders_spam) || check_folders(asu->folders_trash)
-	    || check_folders(asu->folders_unsure) || asu->flags_spam))
+	    || check_folders(asu->folders_unsure) || asu->flags_spam
+          || asu->flags_ham))
     {
         i_error("antispam plugin folders and flags are not configured for this user");
         goto bailout;
