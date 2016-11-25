@@ -1,5 +1,6 @@
 #include "lib.h"
 #include "mail-storage-hooks.h"
+#include "notify-plugin.h"
 
 #include "antispam-plugin.h"
 #include "user.h"
@@ -8,6 +9,7 @@
 
 static struct mail_storage_hooks antispam_plugin_hooks = {
     .mail_user_created = antispam_user_created,
+    .mail_allocated = antispam_mail_allocated,
     .mailbox_allocated = antispam_mailbox_allocated
 };
 

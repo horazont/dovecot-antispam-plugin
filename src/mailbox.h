@@ -23,5 +23,6 @@ struct antispam_mailbox
 };
 
 void antispam_mailbox_allocated(struct mailbox *box);
+void antispam_mail_allocated(struct mail *_mail);
 
 #endif

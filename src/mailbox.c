@@ -4,12 +4,17 @@
 #include "mailbox.h"
 #include "backends.h"
 
+#include <stdbool.h>
+
 static MODULE_CONTEXT_DEFINE_INIT(antispam_storage_module,
 	&mail_storage_module_register);
 static MODULE_CONTEXT_DEFINE_INIT(antispam_transaction_module,
 	&mail_storage_module_register);
+static MODULE_CONTEXT_DEFINE_INIT(antispam_mail_module,
+	&mail_module_register);
 
 #define TRANSACTION_CONTEXT(obj) MODULE_CONTEXT(obj, antispam_transaction_module)
+#define MAIL_CONTEXT(obj) MODULE_CONTEXT(obj, antispam_mail_module)
 
 struct antispam_transaction
 {
@@ -24,6 +29,35 @@ enum mailbox_copy_type
     MCT_HAM,
     MCT_DENY
 };
+
+
+static bool in_flags(const char *kwd, char *const *flags)
+{
+    char *const *curr_flag = flags;
+    for (; *curr_flag; ++curr_flag) {
+        if (strcmp(kwd, *curr_flag) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+static void find_relevant_flags(struct antispam_user *asu,
+                                const char *const *kwds,
+                                bool *has_spam)
+{
+    const char *const *curr_kwd = kwds;
+    for (; *curr_kwd; ++curr_kwd) {
+        *has_spam = *has_spam || in_flags(*curr_kwd, asu->flags_spam);
+        if (*has_spam) {
+            // found, no need to continue
+            break;
+        }
+    }
+}
+
+
 
 static enum mailbox_class antispam_mailbox_classify(struct mailbox *box)
 {
@@ -232,6 +266,78 @@ static void antispam_transaction_rollback(struct mailbox_transaction_context
     asu->backend->transaction_rollback(t->box, ast->data);
     asmb->module_ctx.super.transaction_rollback(t);
     i_free(ast);
+}
+
+static void antispam_mail_update_keywords(
+        struct mail *_mail, enum modify_type modify_type,
+        struct mail_keywords *keywords)
+{
+    struct mail_private *mail = (struct mail_private *)_mail;
+	union mail_module_context *lmail = MAIL_CONTEXT(mail);
+    struct antispam_user *asu = USER_CONTEXT(_mail->box->storage->user);
+    struct antispam_transaction *ast = TRANSACTION_CONTEXT(_mail->transaction);
+
+    const char *const *old_keywords = NULL;
+    const char *const *new_keywords = NULL;
+
+    old_keywords = mail_get_keywords(_mail);
+    lmail->super.update_keywords(_mail, modify_type, keywords);
+    new_keywords = mail_get_keywords(_mail);
+
+    bool old_has_spam = false;
+    bool new_has_spam = false;
+
+    find_relevant_flags(asu, old_keywords,
+                        &old_has_spam);
+    find_relevant_flags(asu, mail_get_keywords(_mail),
+                        &new_has_spam);
+
+    const bool learn_as_ham = old_has_spam && !new_has_spam;
+    const bool learn_as_spam = !old_has_spam && new_has_spam;
+
+    i_debug("antispam: keywords changed: old_spam = %d, new_spam = %d\n",
+            old_has_spam, new_has_spam);
+
+    if (learn_as_ham && learn_as_spam) {
+        // wat.
+        i_debug("antispam: wat. both learn as ham and as spam? no way.");
+        return;
+    }
+
+    if (learn_as_spam) {
+        i_debug("antispam: learning as spam");
+        asu->backend->handle_mail(
+                    _mail->transaction,
+                    ast->data,
+                    _mail,
+                    true
+                    );
+    }
+
+    if (learn_as_ham) {
+        i_debug("antispam: learning as ham");
+        asu->backend->handle_mail(
+                    _mail->transaction,
+                    ast->data,
+                    _mail,
+                    false
+                    );
+    }
+}
+
+void antispam_mail_allocated(struct mail *_mail)
+{
+    // XXX: I feel bad about that one
+    struct mail_private *mail = (struct mail_private*)_mail;
+    struct mail_vfuncs *v = mail->vlast;
+    union mail_module_context *lmail;
+
+    lmail = p_new(mail->pool, union mail_module_context, 1);
+    lmail->super = *v;
+    mail->vlast = &lmail->super;
+
+    v->update_keywords = antispam_mail_update_keywords;
+    MODULE_CONTEXT_SET_SELF(mail, antispam_mail_module, lmail);
 }
 
 void antispam_mailbox_allocated(struct mailbox *box)

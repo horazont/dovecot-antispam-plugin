@@ -25,6 +25,22 @@ static void parse_folders(struct mail_user *user, const char *infix,
     T_END;
 }
 
+static void parse_flags(struct mail_user *user, const char *suffix,
+                        char ***result)
+{
+    const char *tmp;
+
+    T_BEGIN
+    {
+        tmp = config(user, suffix);
+        if (tmp)
+        {
+            *result = p_strsplit(user->pool, tmp, ";");
+        }
+    }
+    T_END;
+}
+
 static bool check_folders(char ***folders)
 {
     int i;
@@ -86,11 +102,14 @@ void antispam_user_created(struct mail_user *user)
     parse_folders(user, "trash", asu->folders_trash);
     parse_folders(user, "unsure", asu->folders_unsure);
 
+    asu->flags_spam = NULL;
+    parse_flags(user, "spam_flags", &asu->flags_spam);
+
     if (!(check_folders(asu->folders_spam) || check_folders(asu->folders_trash)
-	    || check_folders(asu->folders_unsure)))
+	    || check_folders(asu->folders_unsure) || asu->flags_spam))
     {
-	i_error("antispam plugin folders are not configured for this user");
-	goto bailout;
+        i_error("antispam plugin folders and flags are not configured for this user");
+        goto bailout;
     }
 
     MODULE_CONTEXT_SET(user, antispam_user_module, asu);
